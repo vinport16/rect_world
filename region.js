@@ -26,7 +26,6 @@ module.exports = class Region{
     if(this.zones){
       let zs = this.in_which_zones(rect);
       for(let n in zs){
-        console.log("PLACED IN ZONE: " + zs[n]);
         this.zones[zs[n][0]][zs[n][1]][zs[n][2]].add_rect(rect);
       }
     }else if(this.contents.length >= $MAX_OCCUPANCY && this.depth < $MAX_DEPTH){
@@ -34,39 +33,38 @@ module.exports = class Region{
       this.split();
       this.add_rect(rect);
     }else{
-      console.log("nosplit: l=" + this.contents.length + ", d=" + this.depth);
       this.contents.push(rect);
     }
   }
 
   split(){
 
-  let contents = this.contents;
-  // clear contents: this is now a segmented region
-  this.contents = null; 
-  
-  let px = this.position.x - this.size.x/4;
-  let py = this.position.y - this.size.y/4;
-  let pz = this.position.z - this.size.z/4;
+    let contents = this.contents;
+    // clear contents: this is now a segmented region
+    this.contents = null; 
+    
+    let px = this.position.x - this.size.x/4;
+    let py = this.position.y - this.size.y/4;
+    let pz = this.position.z - this.size.z/4;
 
-  let width = this.size.x/2;
-  let height = this.size.y/2;
-  let depth = this.size.z/2;
+    let width = this.size.x/2;
+    let height = this.size.y/2;
+    let depth = this.size.z/2;
 
-  let d = this.depth + 1;
+    let d = this.depth + 1;
 
-  this.zones = [[[new Region(-px, -py, -pz, width, height, depth, d), new Region(-px, -py, pz, width, height, depth, d)],
-            [new Region(-px, py, -pz, width, height, depth, d), new Region(-px, py, pz, width, height, depth, d)]],
-           [[new Region(px, -py, -pz, width, height, depth, d), new Region(px, -py, pz, width, height, depth, d)],
-            [new Region(px, py, -pz, width, height, depth, d), new Region(px, py, pz, width, height, depth, d)]]];
-  
-  // so, zones[1][0][1] = octant +x, -y, +z
+    this.zones = [[[new Region(-px, -py, -pz, width, height, depth, d), new Region(-px, -py, pz, width, height, depth, d)],
+              [new Region(-px, py, -pz, width, height, depth, d), new Region(-px, py, pz, width, height, depth, d)]],
+             [[new Region(px, -py, -pz, width, height, depth, d), new Region(px, -py, pz, width, height, depth, d)],
+              [new Region(px, py, -pz, width, height, depth, d), new Region(px, py, pz, width, height, depth, d)]]];
+    
+    // so, zones[1][0][1] = octant +x, -y, +z
 
-  for(var idx in contents){
-    this.add_rect(contents[idx]);
+    for(var idx in contents){
+      this.add_rect(contents[idx]);
+    }
+
   }
-
-}
 
   // rect: a rectangle object (with position and size)
   // returns: a list of octants that it is in:
@@ -109,27 +107,71 @@ module.exports = class Region{
         }
       }
     }
-    console.log("rect is in zones: " + zones.join(", "));
     return zones;
   }
 
   remove_rect(rect){
     if(this.zones){
-      // pass removal to next level
-      // check if all levels below have < max occupancy
-      //    -> merge them back together
+      let zs = in_which_zones(rect);
+      for(let idx in zs){
+        zs[idx].remove_rect(rect);
+      }
+      // check if it should collapse
+      if(this.contents.length <= $MAX_OCCUPANCY){
+        this.collapse();
+      }
     }else{
        idx = contents.findIndex( function f(x){return(x == rect)} );
        contents.splice(idx,1);
     }
   }
 
-  get_near(point, size){
+  collapse(){
+    this.contents = this.get_contents();
+    this.zones = null;
+  }
 
+  // get all contents in the regions that this rect is in
+  get_near(rect){
+    if(this.zones){
+      let near = [];
+      let zs = in_which_zones(rect);
+      for(let idx in zs){
+        near.concat(zs[idx].get_near(rect));
+      }
+    }else{
+      return(this.contents);
+    }
   }
 
   type(){
     return(Region);
+  }
+
+  get_contents(){
+    if(this.zones){
+      let contents = [];
+      let zs = this.get_octants();
+      for(let idx in zs){
+        contents = contents.concat( zs[idx].get_contents() );
+      }
+      return(contents);
+    }else{
+      return(this.contents);
+    }
+  }
+
+  region_count(){
+    if(this.zones){
+      let count = 0;
+      let zs = this.get_octants();
+      for(let idx in zs){
+        count += zs[idx].region_count();
+      }
+      return(count);
+    }else{
+      return(1);
+    }
   }
 
   get_octants(){
