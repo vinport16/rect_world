@@ -12,21 +12,27 @@ var rects = [];
 
 for(var i = 0; i < 1000; i++){
   rects.push(make_rect_in(reg));
-  console.log("rect position: " + rects[rects.length-1].position.toString());
+  //console.log("rect position: " + rects[rects.length-1].position.toString());
 }
 
 
 for(var idx in rects){
   reg.add_rect(rects[idx]);
-  console.log("--------------------------");
 }
 console.log(reg.toString());
 console.log("" + reg.region_count() + " regions");
 console.log("" + reg.get_contents().length + " objects");
 
 
+for(var idx = 0; idx < rects.length/2; idx++){
+  reg.remove_rect(rects[idx]);
+}
+console.log(reg.toString());
+console.log("" + reg.region_count() + " regions");
+console.log("" + reg.get_contents().length + " objects");
 
 
+console.log("rects near rect 1: " + reg.get_near(rects[1]).length);
 
 
 

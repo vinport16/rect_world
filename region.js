@@ -112,21 +112,22 @@ module.exports = class Region{
 
   remove_rect(rect){
     if(this.zones){
-      let zs = in_which_zones(rect);
+      let zs = this.in_which_zones(rect);
       for(let idx in zs){
-        zs[idx].remove_rect(rect);
+        this.zones[zs[idx][0]][zs[idx][1]][zs[idx][2]].remove_rect(rect);
       }
       // check if it should collapse
-      if(this.contents.length <= $MAX_OCCUPANCY){
+      if(this.get_contents().length <= $MAX_OCCUPANCY){
         this.collapse();
       }
     }else{
-       idx = contents.findIndex( function f(x){return(x == rect)} );
-       contents.splice(idx,1);
+       let idx = this.contents.findIndex( function f(x){return(x == rect)} );
+       this.contents.splice(idx,1);
     }
   }
 
   collapse(){
+    console.log("!!COLLAPSE!!");
     this.contents = this.get_contents();
     this.zones = null;
   }
@@ -135,10 +136,11 @@ module.exports = class Region{
   get_near(rect){
     if(this.zones){
       let near = [];
-      let zs = in_which_zones(rect);
+      let zs = this.in_which_zones(rect);
       for(let idx in zs){
-        near.concat(zs[idx].get_near(rect));
+        near = near.concat(this.zones[zs[idx][0]][zs[idx][1]][zs[idx][2]].get_near(rect));
       }
+      return(near);
     }else{
       return(this.contents);
     }
@@ -149,11 +151,15 @@ module.exports = class Region{
   }
 
   get_contents(){
+    return(arrayUnique(this._get_contents()));
+  }
+
+  _get_contents(){
     if(this.zones){
       let contents = [];
       let zs = this.get_octants();
       for(let idx in zs){
-        contents = contents.concat( zs[idx].get_contents() );
+        contents = contents.concat( zs[idx]._get_contents() );
       }
       return(contents);
     }else{
@@ -163,12 +169,12 @@ module.exports = class Region{
 
   region_count(){
     if(this.zones){
-      let count = 0;
+      let inner = 0;
       let zs = this.get_octants();
       for(let idx in zs){
-        count += zs[idx].region_count();
+        inner += zs[idx].region_count();
       }
-      return(count);
+      return(inner + 1);
     }else{
       return(1);
     }
@@ -197,4 +203,19 @@ module.exports = class Region{
     }
   }
 
+}
+
+
+// utility function to remove duplicates from an array
+
+function arrayUnique(array) {
+    var a = array.concat();
+    for(var i=0; i<a.length; ++i) {
+        for(var j=i+1; j<a.length; ++j) {
+            if(a[i] === a[j])
+                a.splice(j--, 1);
+        }
+    }
+
+    return a;
 }
